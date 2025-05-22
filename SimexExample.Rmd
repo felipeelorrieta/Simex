@@ -1,0 +1,94 @@
+---
+title: Simex iAR
+header-includes: 
+   \usepackage{graphicx}
+   \usepackage{fancyhdr}
+   \pagestyle{fancy}
+output:
+  html_document: default
+  word_document: default
+  fig_caption: yes
+  lang: spanish
+  pdf_document: default
+---
+
+\renewcommand{\figurename}{Figura}
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(class.source = "watch-out",collapse = TRUE,
+  #comment = "#>",
+  fig.align = "center",
+  #fig.path = "man/figures/README-",
+  echo = TRUE,
+  fig.width = 8,
+  fig.height = 6)
+require(report)
+library(epoxy)
+require(ggplot2)
+require(gridExtra)
+require(RColorBrewer)
+require(tidyverse)
+require(polynom)
+require(knitr)
+require(iAR)
+source("SimexFunctions.R")
+```
+
+## Near Unit Root 
+
+# Example iAR-Simex with regular gaps (phi=0.99), n=500
+
+```{r plotreg,echo=FALSE,results='asis',warning = FALSE}
+set.seed(123)
+n=500
+p=1
+phi=.99
+N=15
+p=1
+st=1:n
+y=IARsample(phi=phi,n=n,st=st)$series		
+y=(y-mean(y))/sd(y)
+delta=1/30
+out=SimexiAR(y=y,st=st,delta=delta,N=N,B=30)
+simex=BestSimex(out,delta=delta,p=p,up=0.9999)
+x=(1:N)*delta
+fit=IARloglik(y=y,st=st)
+plot(x,out,pch=20,ylim=c(0.5,1),xlab=bquote(lambda),ylab='iAR estimates',main="",xlim=c(0,max(x)))
+lines(x,simex$fit,type="l",col="red",lwd=2)
+abline(v=0,col="gray",lty=2,lwd=2)
+abline(h=fit$phi,col="gray",lty=2,lwd=2)
+abline(h=phi,col="blue",lty=2,lwd=2)
+points(0,simex$par,pch=20,col="red")
+best=data.frame(phi,simex$par,fit$phi,simex$criteria,simex$type,simex$weight)
+names(best)=c("True","Estimated","MLE","Criteria","Type","Weight")
+display(best,digits=4)
+```
+## Additive Noise Example
+
+# Example iAR-Simex with regular gaps (phi=0.99), n=500
+
+```{r plotnoise,echo=FALSE,results='asis',warning = FALSE}
+set.seed(123)
+n=500
+p=1
+phi=.99
+N=20
+st=1:n
+sigma=0.1
+noise=sigma*rnorm(n)	
+y=IARsample(phi=phi,n=n,st=st)$series	+ noise	
+y=(y-mean(y))/sd(y)
+delta=0.5
+out=SimexiAR(y=y,st=st,yerr=sigma,delta=delta,N=N,B=30)
+simex=ARsimex2(out,delta=delta,yerr=noise,p=p,up=0.9999,N=N,type="quadratic")
+x=(0:N)*delta
+fit=IARloglik(y=y,st=st)
+plot(x,out,pch=20,ylim=c(0,1),xlab=bquote(lambda),ylab='iAR estimates',main="",xlim=c(-1,max(x)))
+lines(x,simex$fit,type="l",col="red",lwd=2)
+abline(v=-1,col="gray",lty=2,lwd=2)
+abline(h=fit$phi,col="gray",lty=2,lwd=2)
+abline(h=phi,col="blue",lty=2,lwd=2)
+points(-1,simex$par,pch=20,col="red")
+best=data.frame(phi,simex$par,fit$phi,simex$AIC,"quadratic","equally")
+names(best)=c("True","Estimated","MLE","Criteria","Type","Weight")
+display(best,digits=4)
+```
